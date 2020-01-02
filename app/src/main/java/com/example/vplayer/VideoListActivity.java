@@ -5,43 +5,63 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.util.Size;
+import android.view.View;
+import android.widget.ImageView;
 import android.widget.Toast;
+import android.widget.VideoView;
 
+import androidx.annotation.LongDef;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.example.vplayer.bean.Video;
+
 import java.io.File;
 import java.io.FileFilter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.ref.WeakReference;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 public class VideoListActivity extends AppCompatActivity {
 
     public static final int PERMISSION_REQUEST_CODE = 1;
+    MyHandler myHandler = new MyHandler(this);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video_list);
 
-        //checkPermission();
-        getVideoList();
+        checkPermission();
     }
 
     /**
      * 检查是否有sdcard访问权限
      */
     private void checkPermission(){
-        String[] perms = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE};
+        String[] perms = {Manifest.permission.WRITE_EXTERNAL_STORAGE};
         int i = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
         if (PackageManager.PERMISSION_GRANTED != i){    //未授权
-            ActivityCompat.requestPermissions(this, perms, PERMISSION_REQUEST_CODE);
+            ActivityCompat.requestPermissions(VideoListActivity.this, perms, PERMISSION_REQUEST_CODE);
         }else {
             getVideoList();
         }
@@ -69,48 +89,62 @@ public class VideoListActivity extends AppCompatActivity {
      * 获取视频列表
      */
     private void getVideoList(){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                List<Video> list = new ArrayList<>();
+                String selection = MediaStore.Video.Media.RELATIVE_PATH + "=?";
+                String[] args = {"Movies/"};
+                Uri uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
+                Cursor cursor = getContentResolver().query(uri, null, selection, args, null, null);
+                while (cursor.moveToNext()){
+                    try {
+                        Video video = new Video();
+                        video.setId(cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)));
+                        video.setTitle(cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.TITLE)));
+                        video.setDisplayName(cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)));
+                        video.setSize(cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)));
+                        video.setAddDate(new Date(cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED))));
+                        video.setModifiedDate(new Date(cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_MODIFIED))));
+                        video.setMineType(cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.MIME_TYPE)));
+                        video.setDuration(cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)));
+                        video.setAlbum(cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.ALBUM)));
+                        video.setResolution(cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.RESOLUTION)));
+                        video.setWidth(cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH)));
+                        video.setHeight(cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT)));
+                        video.setUri(ContentUris.withAppendedId(uri, video.getId()));
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                            video.setThumbnail(getContentResolver().loadThumbnail(video.getUri(), new Size(190, 100), null));
+                        }
+                        list.add(video);
+                        /*Message msg = new Message();
+                        msg.what = 1;
+                        msg.obj = video;
+                        myHandler.sendMessage(msg);*/
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
 
-        /*Uri uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
+    }
 
-
-        MediaScannerConnection.scanFile(this, null, null, null);
-        //Uri external = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-        ContentResolver resolver = getContentResolver();
-        //String selection = MediaStore.Video.Media.TITLE + "=?";
-        //String[] args = new String[] {"Video"};
-        String[] projection = new String[] {MediaStore.Video.Media._ID};
-        //Cursor cursor = resolver.query(uri, projection, selection, args, null);
-        Cursor cursor = resolver.query(uri, projection, null, null, null);
-        Uri imageUri = null;
-        if (cursor != null && cursor.moveToFirst()) {
-            imageUri = ContentUris.withAppendedId(uri, cursor.getLong(0));
-            cursor.close();
-        }*/
-
-        Cursor cursor = getApplicationContext().getContentResolver().query(
-                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                null,
-                null,
-                null,
-                null
-        );
-
-        //ContentResolver resolver = getContentResolver();
-        //Cursor cursor = resolver.query(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, null, null, null, null);
-        while (cursor.moveToNext()){
-            String string = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.MIME_TYPE));
-            Log.d("1111111111111111", string);
+    static class MyHandler extends Handler{
+        WeakReference<VideoListActivity> myActivity;
+        MyHandler(VideoListActivity activity){
+            myActivity = new WeakReference<>(activity);
         }
 
-
-
-
-        /*//File file = Environment.getExternalStorageDirectory();
-        File file = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES);
-        String path = file.getAbsolutePath();
-        File file1 = new File(path);
-        File[] files = file1.listFiles();
-        //File[] files = file.listFiles();*/
-        //Log.d("1111111111111111", path);
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            VideoListActivity videoListActivity = myActivity.get();
+            switch (msg.what){
+                case 1:
+                    VideoView video = videoListActivity.findViewById(R.id.videoView);
+                    Bitmap bitmap = (Bitmap) msg.obj;
+                    video.setBackground(new BitmapDrawable(videoListActivity.getResources(), bitmap));
+            }
+        }
     }
 }
