@@ -1,7 +1,6 @@
 package com.example.vplayer.bean;
 
 import android.graphics.Bitmap;
-import android.net.Uri;
 
 import java.util.Date;
 
@@ -24,6 +23,6 @@ public class Video {
     private String resolution;  //分辨率
     private int width;          //宽
     private int height;         //高
-    private Uri uri;            //uri
+    private String uri;          //uri
     private Bitmap thumbnail;   //缩略图
 }

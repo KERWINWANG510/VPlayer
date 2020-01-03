@@ -1,42 +1,33 @@
 package com.example.vplayer;
 
 import android.Manifest;
-import android.content.ContentResolver;
 import android.content.ContentUris;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
-import android.media.MediaScannerConnection;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.util.Size;
 import android.view.View;
-import android.widget.ImageView;
+import android.widget.AdapterView;
+import android.widget.GridView;
 import android.widget.Toast;
-import android.widget.VideoView;
 
-import androidx.annotation.LongDef;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.example.vplayer.adapter.VideoListAdatper;
 import com.example.vplayer.bean.Video;
+import com.google.gson.Gson;
 
-import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.ref.WeakReference;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -45,6 +36,7 @@ public class VideoListActivity extends AppCompatActivity {
 
     public static final int PERMISSION_REQUEST_CODE = 1;
     MyHandler myHandler = new MyHandler(this);
+    public static final String INTENT_PARAM_VIDEO = "video";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,7 +91,7 @@ public class VideoListActivity extends AppCompatActivity {
                 Cursor cursor = getContentResolver().query(uri, null, selection, args, null, null);
                 while (cursor.moveToNext()){
                     try {
-                        Video video = new Video();
+                         Video video = new Video();
                         video.setId(cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)));
                         video.setTitle(cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.TITLE)));
                         video.setDisplayName(cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)));
@@ -112,22 +104,41 @@ public class VideoListActivity extends AppCompatActivity {
                         video.setResolution(cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.RESOLUTION)));
                         video.setWidth(cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH)));
                         video.setHeight(cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT)));
-                        video.setUri(ContentUris.withAppendedId(uri, video.getId()));
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                            video.setThumbnail(getContentResolver().loadThumbnail(video.getUri(), new Size(190, 100), null));
+                        video.setUri(ContentUris.withAppendedId(uri, video.getId()).toString());
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            video.setThumbnail(getContentResolver().loadThumbnail(Uri.parse(video.getUri()), new Size(190, 100), null));
                         }
                         list.add(video);
-                        /*Message msg = new Message();
-                        msg.what = 1;
-                        msg.obj = video;
-                        myHandler.sendMessage(msg);*/
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                 }
+                Message msg = new Message();
+                msg.what = 1;
+                msg.obj = list;
+                myHandler.sendMessage(msg);
             }
         }).start();
+    }
 
+    /**
+     * 显示视频列表
+     * @param list 视频列表
+     */
+    private void showVideoList(List<Video> list){
+        GridView videoGrid = findViewById(R.id.videoGrid);
+        VideoListAdatper adapter = new VideoListAdatper(this, R.layout.video_list_item, list);
+        videoGrid.setAdapter(adapter);
+        videoGrid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Intent intent = new Intent(VideoListActivity.this, PlayVideoActivity.class);
+                VideoListAdatper.ViewHolder holder = (VideoListAdatper.ViewHolder) view.getTag();
+                String s = new Gson().toJson(holder.getVideo());
+                intent.putExtra(INTENT_PARAM_VIDEO, s);
+                startActivity(intent);
+            }
+        });
     }
 
     static class MyHandler extends Handler{
@@ -141,9 +152,10 @@ public class VideoListActivity extends AppCompatActivity {
             VideoListActivity videoListActivity = myActivity.get();
             switch (msg.what){
                 case 1:
-                    VideoView video = videoListActivity.findViewById(R.id.videoView);
-                    Bitmap bitmap = (Bitmap) msg.obj;
-                    video.setBackground(new BitmapDrawable(videoListActivity.getResources(), bitmap));
+                    removeMessages(1);
+                    List<Video> list = (List<Video>) msg.obj;
+                    videoListActivity.showVideoList(list);
+                    break;
             }
         }
     }
