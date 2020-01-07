@@ -11,6 +11,7 @@
         android:id="@+id/playVideoView"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:onClick="clickVideoView"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -53,8 +54,6 @@
         android:id="@+id/seekBar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="5dp"
-        android:layout_marginEnd="5dp"
         android:layout_marginBottom="60dp"
         android:progressDrawable="@drawable/seek_bar_bg"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -71,7 +70,23 @@
         android:text="@string/pause"
         android:textColor="#F44336"
         android:textSize="25sp"
+        android:foreground="?android:attr/selectableItemBackground"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/fullScreenBtn"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginBottom="13dp"
+        android:background="@null"
+        android:onClick="fullScreen"
+        android:text="@string/full_screen"
+        android:textColor="#F44336"
+        android:textSize="25sp"
+        android:foreground="?android:attr/selectableItemBackground"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,5 +1,7 @@
 package com.example.vplayer;
 
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.graphics.Typeface;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -32,6 +34,19 @@ public class PlayVideoActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_play_video);
+        init();
+    }
+
+    /**
+     * 初始化
+     */
+    private void init(){
+        Button playOrPause = findViewById(R.id.playOrPauseBtn);
+        Typeface typeface = Typeface.createFromAsset(getAssets(), "iconfont.ttf");
+        playOrPause.setTypeface(typeface);
+        Button fullScreen = findViewById(R.id.fullScreenBtn);
+        fullScreen.setTypeface(typeface);
+        //播放视频
         play();
     }
 
@@ -39,9 +54,6 @@ public class PlayVideoActivity extends AppCompatActivity {
      * 播放视频
      */
     private void play(){
-        Button playOrPause = findViewById(R.id.playOrPauseBtn);
-        Typeface typeface = Typeface.createFromAsset(getAssets(), "iconfont.ttf");
-        playOrPause.setTypeface(typeface);
         String str = getIntent().getStringExtra(VideoListActivity.INTENT_PARAM_VIDEO);
         final Video video = new Gson().fromJson(str, Video.class);
         VideoView view = findViewById(R.id.playVideoView);
@@ -63,7 +75,9 @@ public class PlayVideoActivity extends AppCompatActivity {
                 SeekBar seek = findViewById(R.id.seekBar);
                 seek.setProgress(0);
                 TextView start = findViewById(R.id.startTimeView);
-                start.setText("00:00:00");
+                start.setText(R.string.start_time);
+                Button btn = findViewById(R.id.playOrPauseBtn);
+                btn.setText(getString(R.string.play));
             }
         });
     }
@@ -73,11 +87,18 @@ public class PlayVideoActivity extends AppCompatActivity {
         end.setText(TimeUtils.formatDuration(video.getDuration() / 1000));
         SeekBar seek = findViewById(R.id.seekBar);
         seek.setMax((int) video.getDuration() / 1000);
-        final VideoView view = findViewById(R.id.playVideoView);
         //定时更新进度条和时间
+        this.updateController();
+    }
+
+    /**
+     * 更新进度条和当前播放时间
+     */
+    private void updateController(){
         new Thread(new Runnable() {
             @Override
             public void run() {
+                VideoView view = findViewById(R.id.playVideoView);
                 while (view.isPlaying()){
                     int position = view.getCurrentPosition();
                     Message msg = new Message();
@@ -95,17 +116,11 @@ public class PlayVideoActivity extends AppCompatActivity {
     }
 
     /**
-     * 更新进度条和当前播放时间
+     * 播放暂停按钮
+     * @param view btn
      */
-    private void updateController(int position){
-        SeekBar seek = findViewById(R.id.seekBar);
-        seek.setProgress(position / 1000);
-        TextView start = findViewById(R.id.startTimeView);
-        start.setText(TimeUtils.formatDuration(position / 1000));
-    }
-
     public void playOrPause(View view){
-        VideoView videoView = findViewById(R.id.playVideoView);
+        final VideoView videoView = findViewById(R.id.playVideoView);
         Button btn = findViewById(R.id.playOrPauseBtn);
         if (videoView.isPlaying()){
             videoView.pause();
@@ -113,13 +128,72 @@ public class PlayVideoActivity extends AppCompatActivity {
         }else {
             videoView.start();
             btn.setText(getString(R.string.pause));
-            //设置播放时间和进度条，最好提取成公用方法
+            //定时更新进度条和时间
+            this.updateController();
+        }
+    }
+
+    /**
+     * 全屏按钮
+     * @param view btn
+     */
+    public void fullScreen(View view){
+        //竖屏
+        if (this.getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT){
+            //设置跟随传感器横屏
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+            this.showOrHide(false); //横屏时隐藏按钮
+        }else { //横屏
+            //设置竖屏
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        }
+
+    }
+
+    /**
+     * 显示或隐藏控件
+     * @param flag true：显示  false：隐藏
+     */
+    private void showOrHide(boolean flag){
+        TextView title = findViewById(R.id.titleView);
+        TextView start = findViewById(R.id.startTimeView);
+        TextView end = findViewById(R.id.endTimeView);
+        SeekBar seekBar = findViewById(R.id.seekBar);
+        Button ppBtn = findViewById(R.id.playOrPauseBtn);
+        Button fBtn = findViewById(R.id.fullScreenBtn);
+        if (flag){  //显示
+            title.setVisibility(View.VISIBLE);
+            start.setVisibility(View.VISIBLE);
+            end.setVisibility(View.VISIBLE);
+            seekBar.setVisibility(View.VISIBLE);
+            ppBtn.setVisibility(View.VISIBLE);
+            fBtn.setVisibility(View.VISIBLE);
+        }else {     //隐藏
+            title.setVisibility(View.GONE);
+            start.setVisibility(View.GONE);
+            end.setVisibility(View.GONE);
+            seekBar.setVisibility(View.GONE);
+            ppBtn.setVisibility(View.GONE);
+            fBtn.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * 点击屏幕显示或隐藏控件
+     * @param view VideoView
+     */
+    public void clickVideoView(View view){
+        TextView title = findViewById(R.id.titleView);
+        if (title.getVisibility() == View.GONE){    //已隐藏则显示
+            this.showOrHide(true);
+        }else { //已显示则隐藏
+            this.showOrHide(false);
         }
     }
 
     static class MyHandler extends Handler{
         WeakReference<PlayVideoActivity> myActivity;
-        public MyHandler(PlayVideoActivity activity){
+        MyHandler(PlayVideoActivity activity){
             this.myActivity = new WeakReference<>(activity);
         }
         @Override
@@ -128,9 +202,19 @@ public class PlayVideoActivity extends AppCompatActivity {
             switch (msg.what){
                 case 1:
                     removeMessages(1);
-                    playVideoActivity.updateController((int) msg.obj);
+                    int position = (int) msg.obj;
+                    //更新进度条和时间
+                    SeekBar seek = playVideoActivity.findViewById(R.id.seekBar);
+                    seek.setProgress(position / 1000);
+                    TextView start = playVideoActivity.findViewById(R.id.startTimeView);
+                    start.setText(TimeUtils.formatDuration(position / 1000));
                     break;
             }
         }
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
     }
 }
