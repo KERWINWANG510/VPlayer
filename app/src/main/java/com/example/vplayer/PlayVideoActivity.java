@@ -46,8 +46,33 @@ public class PlayVideoActivity extends AppCompatActivity {
         playOrPause.setTypeface(typeface);
         Button fullScreen = findViewById(R.id.fullScreenBtn);
         fullScreen.setTypeface(typeface);
+        this.seekBarListener();
         //播放视频
         play();
+    }
+
+    /**
+     * SeekBar监听
+     */
+    private void seekBarListener(){
+        SeekBar seekBar = findViewById(R.id.seekBar);
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                TextView start = PlayVideoActivity.this.findViewById(R.id.startTimeView);
+                start.setText(TimeUtils.formatDuration(progress / 1000));
+            }
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                int progress = seekBar.getProgress();
+                TextView start = PlayVideoActivity.this.findViewById(R.id.startTimeView);
+                start.setText(TimeUtils.formatDuration(progress / 1000));
+                VideoView view = PlayVideoActivity.this.findViewById(R.id.playVideoView);
+                view.seekTo(progress);
+            }
+        });
     }
 
     /**
@@ -74,8 +99,6 @@ public class PlayVideoActivity extends AppCompatActivity {
             public void onCompletion(MediaPlayer mp) {
                 SeekBar seek = findViewById(R.id.seekBar);
                 seek.setProgress(0);
-                TextView start = findViewById(R.id.startTimeView);
-                start.setText(R.string.start_time);
                 Button btn = findViewById(R.id.playOrPauseBtn);
                 btn.setText(getString(R.string.play));
             }
@@ -86,7 +109,7 @@ public class PlayVideoActivity extends AppCompatActivity {
         TextView end = findViewById(R.id.endTimeView);
         end.setText(TimeUtils.formatDuration(video.getDuration() / 1000));
         SeekBar seek = findViewById(R.id.seekBar);
-        seek.setMax((int) video.getDuration() / 1000);
+        seek.setMax((int) video.getDuration());
         //定时更新进度条和时间
         this.updateController();
     }
@@ -156,25 +179,13 @@ public class PlayVideoActivity extends AppCompatActivity {
      */
     private void showOrHide(boolean flag){
         TextView title = findViewById(R.id.titleView);
-        TextView start = findViewById(R.id.startTimeView);
-        TextView end = findViewById(R.id.endTimeView);
-        SeekBar seekBar = findViewById(R.id.seekBar);
-        Button ppBtn = findViewById(R.id.playOrPauseBtn);
-        Button fBtn = findViewById(R.id.fullScreenBtn);
+        View controller = findViewById(R.id.controllerView);
         if (flag){  //显示
+            controller.setVisibility(View.VISIBLE);
             title.setVisibility(View.VISIBLE);
-            start.setVisibility(View.VISIBLE);
-            end.setVisibility(View.VISIBLE);
-            seekBar.setVisibility(View.VISIBLE);
-            ppBtn.setVisibility(View.VISIBLE);
-            fBtn.setVisibility(View.VISIBLE);
         }else {     //隐藏
+            controller.setVisibility(View.GONE);
             title.setVisibility(View.GONE);
-            start.setVisibility(View.GONE);
-            end.setVisibility(View.GONE);
-            seekBar.setVisibility(View.GONE);
-            ppBtn.setVisibility(View.GONE);
-            fBtn.setVisibility(View.GONE);
         }
     }
 
@@ -183,8 +194,8 @@ public class PlayVideoActivity extends AppCompatActivity {
      * @param view VideoView
      */
     public void clickVideoView(View view){
-        TextView title = findViewById(R.id.titleView);
-        if (title.getVisibility() == View.GONE){    //已隐藏则显示
+        View controller = findViewById(R.id.controllerView);
+        if (controller.getVisibility() == View.GONE){    //已隐藏则显示
             this.showOrHide(true);
         }else { //已显示则隐藏
             this.showOrHide(false);
@@ -205,9 +216,7 @@ public class PlayVideoActivity extends AppCompatActivity {
                     int position = (int) msg.obj;
                     //更新进度条和时间
                     SeekBar seek = playVideoActivity.findViewById(R.id.seekBar);
-                    seek.setProgress(position / 1000);
-                    TextView start = playVideoActivity.findViewById(R.id.startTimeView);
-                    start.setText(TimeUtils.formatDuration(position / 1000));
+                    seek.setProgress(position);
                     break;
             }
         }
