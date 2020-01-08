@@ -18,10 +18,12 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.vplayer.bean.Video;
+import com.example.vplayer.utils.TimeTaskUtils;
 import com.example.vplayer.utils.TimeUtils;
 import com.google.gson.Gson;
 
 import java.lang.ref.WeakReference;
+import java.util.TimerTask;
 
 /**
  * 播放视频
@@ -29,6 +31,7 @@ import java.lang.ref.WeakReference;
 public class PlayVideoActivity extends AppCompatActivity {
 
     MyHandler myHandler = new MyHandler(this);
+    private TimeTaskUtils task;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,6 +94,7 @@ public class PlayVideoActivity extends AppCompatActivity {
             public void onPrepared(MediaPlayer mp) {
                 mp.start();
                 setController(video);
+                startTimer();
             }
         });
         //监听视频是否播放完成
@@ -103,6 +107,19 @@ public class PlayVideoActivity extends AppCompatActivity {
                 btn.setText(getString(R.string.play));
             }
         });
+    }
+
+    /**
+     * 3秒后隐藏控制栏
+     */
+    private void startTimer(){
+        task = new TimeTaskUtils(3000,3000, new TimerTask() {
+            @Override
+            public void run() {
+                myHandler.sendEmptyMessage(2);
+            }
+        });
+        task.start();
     }
 
     private void setController(final Video video){
@@ -183,6 +200,9 @@ public class PlayVideoActivity extends AppCompatActivity {
         if (flag){  //显示
             controller.setVisibility(View.VISIBLE);
             title.setVisibility(View.VISIBLE);
+            //显示控制栏后，重新开始计时
+            task.stop();
+            this.startTimer();
         }else {     //隐藏
             controller.setVisibility(View.GONE);
             title.setVisibility(View.GONE);
@@ -218,6 +238,10 @@ public class PlayVideoActivity extends AppCompatActivity {
                     SeekBar seek = playVideoActivity.findViewById(R.id.seekBar);
                     seek.setProgress(position);
                     break;
+                case 2:
+                    removeMessages(2);
+                    playVideoActivity.showOrHide(false);
+                    break;
             }
         }
     }
@@ -225,5 +249,11 @@ public class PlayVideoActivity extends AppCompatActivity {
     @Override
     public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
+    }
+
+    @Override
+    protected void onDestroy() {
+        task.stop();
+        super.onDestroy();
     }
 }
