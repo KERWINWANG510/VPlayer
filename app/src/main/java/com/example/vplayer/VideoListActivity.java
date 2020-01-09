@@ -12,6 +12,8 @@ import android.os.Handler;
 import android.os.Message;
 import android.provider.MediaStore;
 import android.util.Size;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.GridView;
@@ -19,6 +21,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
@@ -28,6 +31,8 @@ import com.google.gson.Gson;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -44,6 +49,17 @@ public class VideoListActivity extends AppCompatActivity {
         setContentView(R.layout.activity_video_list);
 
         checkPermission();
+        init();
+    }
+
+    /**
+     * 加载初始数据
+     */
+    private void init(){
+        //用于加载菜单
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayShowTitleEnabled(false);    //隐藏自带标题
     }
 
     /**
@@ -89,28 +105,30 @@ public class VideoListActivity extends AppCompatActivity {
                 String[] args = {"Movies/"};
                 Uri uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
                 Cursor cursor = getContentResolver().query(uri, null, selection, args, null, null);
-                while (cursor.moveToNext()){
-                    try {
-                         Video video = new Video();
-                        video.setId(cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)));
-                        video.setTitle(cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.TITLE)));
-                        video.setDisplayName(cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)));
-                        video.setSize(cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)));
-                        video.setAddDate(new Date(cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED))));
-                        video.setModifiedDate(new Date(cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_MODIFIED))));
-                        video.setMineType(cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.MIME_TYPE)));
-                        video.setDuration(cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)));
-                        video.setAlbum(cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.ALBUM)));
-                        video.setResolution(cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.RESOLUTION)));
-                        video.setWidth(cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH)));
-                        video.setHeight(cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT)));
-                        video.setUri(ContentUris.withAppendedId(uri, video.getId()).toString());
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                            video.setThumbnail(getContentResolver().loadThumbnail(Uri.parse(video.getUri()), new Size(190, 100), null));
+                if (null != cursor){
+                    while (cursor.moveToNext()){
+                        try {
+                            Video video = new Video();
+                            video.setId(cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)));
+                            video.setTitle(cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.TITLE)));
+                            video.setDisplayName(cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)));
+                            video.setSize(cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)));
+                            video.setAddDate(new Date(cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED))));
+                            video.setModifiedDate(new Date(cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_MODIFIED))));
+                            video.setMineType(cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.MIME_TYPE)));
+                            video.setDuration(cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)));
+                            video.setAlbum(cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.ALBUM)));
+                            video.setResolution(cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.RESOLUTION)));
+                            video.setWidth(cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH)));
+                            video.setHeight(cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT)));
+                            video.setUri(ContentUris.withAppendedId(uri, video.getId()).toString());
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                video.setThumbnail(getContentResolver().loadThumbnail(Uri.parse(video.getUri()), new Size(190, 100), null));
+                            }
+                            list.add(video);
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
-                        list.add(video);
-                    } catch (IOException e) {
-                        e.printStackTrace();
                     }
                 }
                 Message msg = new Message();
@@ -141,12 +159,29 @@ public class VideoListActivity extends AppCompatActivity {
         });
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.video_list_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        int itemId = item.getItemId();
+        switch (itemId){
+            case R.id.refreshMetadata:
+                break;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
     static class MyHandler extends Handler{
         WeakReference<VideoListActivity> myActivity;
         MyHandler(VideoListActivity activity){
             myActivity = new WeakReference<>(activity);
         }
 
+        @SuppressWarnings("unchecked")
         @Override
         public void handleMessage(@NonNull Message msg) {
             VideoListActivity videoListActivity = myActivity.get();

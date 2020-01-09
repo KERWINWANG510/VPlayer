@@ -5,4 +5,5 @@
     <string name="play">&#xe8c6;</string>
     <string name="pause">&#xe688;</string>
     <string name="full_screen">&#xe6d8;</string>
+    <string name="refresh_metadata">刷新元数据</string>
 </resources>

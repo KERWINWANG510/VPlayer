@@ -12,13 +12,13 @@
         android:layout_height="wrap_content"
         android:background="#F44336"
         android:minHeight="?attr/actionBarSize"
-        android:theme="?attr/actionBarTheme"
+        android:theme="@style/AppTheme"
+        app:popupTheme="@style/AppTheme.PopupOverlay"
         app:layout_constraintBottom_toTopOf="@+id/videoGrid"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
-
         <TextView
             android:id="@+id/textView3"
             android:layout_width="wrap_content"
