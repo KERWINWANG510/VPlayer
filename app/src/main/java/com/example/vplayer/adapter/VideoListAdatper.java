@@ -2,16 +2,13 @@ package com.example.vplayer.adapter;
 
 import android.content.Context;
 import android.graphics.drawable.BitmapDrawable;
-import android.media.MediaPlayer;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
-import android.widget.VideoView;
 
 import com.example.vplayer.R;
-import com.example.vplayer.bean.Time;
 import com.example.vplayer.bean.Video;
 import com.example.vplayer.utils.TimeUtils;
 
